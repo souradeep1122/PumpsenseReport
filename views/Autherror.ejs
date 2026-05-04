@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unauthorized Access - PumpSense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100">
+        <div class="mb-6">
+            <div class="mx-auto h-24 w-24 bg-red-50 rounded-full flex items-center justify-center animate-pulse">
+                <i class="fa-solid fa-shield-halved text-red-500 text-5xl"></i>
+            </div>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Access Denied</h1>
+        <p class="text-gray-500 mb-6 text-lg leading-relaxed">
+            Sorry, <strong><%= user.username %></strong>. You do not have the required permissions to access this page.
+        </p>
+
+        <div class="bg-gray-50 rounded-xl p-4 mb-8 text-left border border-gray-100">
+            <div class="flex items-center mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2">Your Current Role:</span>
+                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold uppercase"><%= user.role %></span>
+            </div>
+            <div class="flex items-center">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2">Target Path:</span>
+                <code class="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100"><%= path %></code>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            <a href="/view-files" class="block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95">
+                Back to Dashboard
+            </a>
+            <p class="text-sm text-gray-400">
+                If you believe this is an error, please contact the <strong>MASTER</strong> administrator.
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer Decoration -->
+    <div class="fixed bottom-6 text-gray-300 pointer-events-none text-xs uppercase tracking-[0.2em]">
+        PumpSense Access Control System
+    </div>
+</body>
+</html>

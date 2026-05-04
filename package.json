@@ -1,0 +1,35 @@
+{
+  "name": "your-app-name",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.994.0",
+    "axios": "^1.13.5",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.7.0",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^17.2.1",
+    "dropbox": "^10.34.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.19.0",
+    "mongoose": "^8.23.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "multer-s3": "^3.0.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "twilio": "^5.12.2",
+    "xlsx": "^0.18.5"
+  },
+  "overrides": {
+    "multer-storage-cloudinary": {
+      "cloudinary": "^2.7.0"
+    }
+  }
+}

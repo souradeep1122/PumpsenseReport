@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUMPSENSE | Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .dropdown-menu {
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .dropdown-menu.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tab-active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+        }
+
+        /* Desktop specific table layout */
+        @media (min-width: 768px) {
+            #reportsTable { table-layout: fixed; width: 100%; }
+            #reportsTable th, #reportsTable td { width: 20%; }
+            #designsTable { table-layout: fixed; width: 100%; }
+            #designsTable th, #designsTable td { width: calc(100% / 6); }
+        }
+
+        /* Mobile Table Transformation */
+        @media (max-width: 767px) {
+            table, thead, tbody, th, td, tr { 
+                display: block; 
+            }
+            thead { 
+                display: none; 
+            }
+            tbody {
+                background: transparent !important;
+            }
+            tr {
+                margin-bottom: 0.5rem; /* Reduced margin */
+                border: 1px solid rgba(226, 232, 240, 0.4);
+                border-radius: 12px;
+                padding: 0.25rem; /* Compressed padding */
+                background: rgba(255, 255, 255, 0.4) !important; /* Higher transparency */
+                backdrop-filter: blur(10px); /* Enhanced blur */
+                -webkit-backdrop-filter: blur(10px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            }
+            td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.25rem 0.6rem !important; /* Half height compression */
+                border: none !important;
+                text-align: right;
+                min-height: 28px;
+            }
+            td::before {
+                content: attr(data-label);
+                font-weight: 800;
+                text-transform: uppercase;
+                font-size: 0.6rem; /* Smaller label font */
+                color: #64748b;
+                text-align: left;
+                margin-right: 1rem;
+            }
+            /* Style for the value itself on mobile */
+            td {
+                font-size: 0.75rem !important;
+            }
+            td:last-child {
+                border-top: 1px solid rgba(241, 245, 249, 0.4) !important;
+                margin-top: 0.15rem;
+                padding-top: 0.4rem !important;
+            }
+        }
+
+        /* Date input styling */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0.5;
+            cursor: pointer;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Clear date button */
+        .date-clear-btn {
+            display: none;
+        }
+        .date-clear-btn.visible {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+
+            <!-- Logo + Brand -->
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <img src="<%= logoUrl %>" alt="Pumpsense Logo" class="h-10 md:h-12 w-auto block object-contain">
+                <div class="border-l border-gray-200 pl-3 md:pl-4">
+                    <h1 class="text-lg md:text-xl font-bold tracking-tight text-slate-900 uppercase leading-none">Pumpsense</h1>
+                    <p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Fluid Engineering</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 md:gap-3">
+
+                <!-- Desktop nav links -->
+                <nav class="hidden md:flex items-center space-x-6 mr-2">
+                    <% if (user.role === 'MASTER') { %>
+                        <a href="/manage-users" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                            <i class="fa-solid fa-users-gear mr-1"></i> Manage Users
+                        </a>
+                    <% } %>
+                    <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                        <a href="/upload" class="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">Upload Report</a>
+                    <% } %>
+                    <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                        <a href="/upload-design" class="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">Upload Design</a>
+                    <% } %>
+                </nav>
+
+                <!-- Desktop: profile avatar dropdown -->
+                <div class="relative hidden md:block">
+                    <button id="profileTrigger" class="focus:outline-none transition-transform hover:scale-105 active:scale-95">
+                        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold shadow-md border-2 border-white">
+                            <%= user.username.charAt(0).toUpperCase() %>
+                        </div>
+                    </button>
+                    <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                        <div class="p-4 bg-gray-50/50 border-b border-gray-100 text-center">
+                            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
+                            <p class="text-sm font-bold text-slate-900 truncate"><%= user.username %></p>
+                        </div>
+                        <div class="p-2">
+                            <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50/50">
+                                <i class="fa-solid fa-user-shield text-blue-500 w-4"></i>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">System Role</p>
+                                    <p class="text-xs font-black text-blue-600"><%= user.role %></p>
+                                </div>
+                            </div>
+                            
+                            <% if (user.role === 'MASTER') { %>
+                                <hr class="my-2 border-gray-100">
+                                <a href="/manage-users" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">
+                                    <i class="fa-solid fa-users-gear text-slate-400 w-4"></i>
+                                    <span class="text-sm font-bold">User Management</span>
+                                </a>
+                            <% } %>
+
+                            <hr class="my-2 border-gray-100">
+                            <a href="/logout" class="flex items-center gap-3 px-3 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-colors">
+                                <i class="fa-solid fa-right-from-bracket w-4"></i>
+                                <span class="text-sm font-bold">Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile: hamburger button -->
+                <button id="mobileMenuTrigger" class="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none" aria-label="Open menu">
+                    <span id="ham1" class="block w-5 h-0.5 bg-slate-700 transition-all duration-300 origin-center"></span>
+                    <span id="ham2" class="block w-5 h-0.5 bg-slate-700 mt-1.5 transition-all duration-300"></span>
+                    <span id="ham3" class="block w-5 h-0.5 bg-slate-700 mt-1.5 transition-all duration-300 origin-center"></span>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Mobile slide-down menu -->
+        <div id="mobileMenu" class="md:hidden overflow-hidden transition-all duration-300 ease-in-out" style="max-height:0;">
+            <div class="border-t border-slate-100 bg-white px-4 pb-4 pt-3 space-y-1">
+
+                <!-- Account info block -->
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 mb-3">
+                    <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow flex-shrink-0">
+                        <%= user.username.charAt(0).toUpperCase() %>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-900 truncate"><%= user.username %></p>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <i class="fa-solid fa-user-shield text-blue-500 text-[10px]"></i>
+                            <p class="text-xs font-black text-blue-600 uppercase tracking-wide"><%= user.role %></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nav options -->
+                <% if (user.role === 'MASTER') { %>
+                    <a href="/manage-users" class="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-600 bg-blue-50 transition-colors">
+                        <i class="fa-solid fa-users-gear w-4 text-blue-600"></i>
+                        <span class="text-sm font-bold">Manage Users</span>
+                    </a>
+                <% } %>
+                
+                <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                    <a href="/upload" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fa-solid fa-upload w-4 text-blue-500"></i>
+                        <span class="text-sm font-semibold">Upload Report</span>
+                    </a>
+                <% } %>
+                <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                    <a href="/upload-design" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors">
+                        <i class="fa-solid fa-drafting-compass w-4 text-slate-500"></i>
+                        <span class="text-sm font-semibold">Upload Design</span>
+                    </a>
+                <% } %>
+
+                <div class="border-t border-slate-100 pt-2 mt-1">
+                    <a href="/logout" class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-colors">
+                        <i class="fa-solid fa-right-from-bracket w-4"></i>
+                        <span class="text-sm font-bold">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center p-2 md:p-4">
+        <div class="w-full max-w-[98%] fade-in mt-2 md:mt-4">
+            <!-- Mobile: removed bg-white and border to allow card transparency to work against page background -->
+            <div class="md:bg-white bg-transparent rounded-xl md:rounded-2xl md:shadow-xl overflow-hidden md:border border-slate-100">
+                
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-slate-100 md:bg-gray-50/30 bg-white rounded-t-xl overflow-x-auto custom-scrollbar">
+                    <button onclick="switchTab('reports')" id="tab-reports" class="whitespace-nowrap px-4 md:px-8 py-4 text-xs md:text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all tab-active">
+                        <i class="fa-solid fa-file-contract mr-1 md:mr-2"></i> Reports
+                    </button>
+                    <button onclick="switchTab('designs')" id="tab-designs" class="whitespace-nowrap px-4 md:px-8 py-4 text-xs md:text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all">
+                        <i class="fa-solid fa-drafting-compass mr-1 md:mr-2"></i> Designs
+                    </button>
+                </div>
+
+                <!-- Dashboard Header -->
+                <div class="p-4 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white gap-4">
+                    <div>
+                        <h2 id="viewTitle" class="text-lg md:text-xl font-bold text-slate-900">Performance History</h2>
+                        <p id="viewDescription" class="text-xs md:text-sm text-slate-500 mt-1">Manage and view comparisons for engineering certificates.</p>
+                    </div>
+                    
+                    <div id="actionButtons" class="flex gap-2 w-full sm:w-auto">
+                        <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                            <a id="btn-upload-report" href="/upload" class="inline-flex items-center justify-center flex-1 sm:flex-initial rounded-lg bg-blue-600 px-4 md:px-5 py-2.5 text-xs md:text-sm font-bold text-white shadow-md hover:bg-blue-700 transition-all">
+                                <i class="fa-solid fa-upload mr-2"></i> New Comparison
+                            </a>
+                        <% } %>
+                        <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                            <a id="btn-upload-design" href="/upload-design" class="hidden inline-flex items-center justify-center flex-1 sm:flex-initial rounded-lg bg-slate-800 px-4 md:px-5 py-2.5 text-xs md:text-sm font-bold text-white shadow-md hover:bg-slate-900 transition-all">
+                                <i class="fa-solid fa-plus mr-2"></i> New Design
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Search & Filter Bar -->
+                <div class="p-4 md:p-5 border-b border-slate-100 bg-white">
+                    <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+
+                        <!-- Total Count Badge -->
+                        <div class="flex-shrink-0 flex items-center">
+                            <span id="resultCount" class="inline-flex items-center px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-[10px] md:text-xs font-bold border border-blue-100 uppercase whitespace-nowrap tracking-tight">
+                                Loading...
+                            </span>
+                        </div>
+
+                        <!-- Text Search -->
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs md:text-sm"></i>
+                            </div>
+                            <input
+                                type="text"
+                                id="searchInput"
+                                oninput="applyFilters()"
+                                class="block w-full rounded-lg border border-gray-200 py-2.5 pl-9 md:pl-10 pr-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs md:text-sm bg-slate-50"
+                                placeholder="Search model or serial...">
+                        </div>
+
+                        <!-- Date Filter (Reports tab only) -->
+                        <div id="dateFilterWrapper" class="flex items-center gap-2">
+                            <div class="relative flex-1 md:flex-initial">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <i class="fa-regular fa-calendar text-slate-400 text-xs md:text-sm"></i>
+                                </div>
+                                <input
+                                    type="date"
+                                    id="dateFilter"
+                                    onchange="applyFilters()"
+                                    class="block w-full rounded-lg border border-gray-200 py-2.5 pl-8 md:pl-9 pr-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs md:text-sm bg-slate-50 cursor-pointer">
+                            </div>
+                            <button
+                                id="clearDateBtn"
+                                onclick="clearDateFilter()"
+                                class="date-clear-btn items-center gap-1.5 px-3 py-2.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors text-xs font-bold">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto min-h-[300px] p-2 md:p-0">
+                    <table id="reportsTable" class="min-w-full divide-y divide-gray-200">
+                        <thead id="tableHead" class="bg-slate-50">
+                            <!-- Header injected by JS -->
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-200">
+                            <!-- Body injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-gray-50/50 border-t border-slate-100 flex flex-col md:flex-row justify-end items-center gap-2">
+                    <span class="text-[9px] md:text-[10px] uppercase font-black text-slate-300 tracking-widest">PumpSense Systems v2.0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const userRole = '<%= user.role %>';
+
+        function sortNewestFirst(arr) {
+            return [...arr].sort((a, b) => {
+                const da = new Date(a.uploadDate || a.createdAt || 0);
+                const db = new Date(b.uploadDate || b.createdAt || 0);
+                return db - da;
+            });
+        }
+
+        const reportsData = sortNewestFirst(<%- JSON.stringify(files || []) %>);
+        const designsData = sortNewestFirst(<%- JSON.stringify(designs || []) %>);
+        let currentTab = 'reports';
+
+        const tableHead   = document.getElementById('tableHead');
+        const tableBody   = document.getElementById('tableBody');
+        const mainTable   = document.getElementById('reportsTable');
+        const viewTitle   = document.getElementById('viewTitle');
+        const viewDescription = document.getElementById('viewDescription');
+        const resultCount = document.getElementById('resultCount');
+        const searchInput = document.getElementById('searchInput');
+        const dateFilter  = document.getElementById('dateFilter');
+        const clearDateBtn= document.getElementById('clearDateBtn');
+        const dateFilterWrapper = document.getElementById('dateFilterWrapper');
+
+        // Mobile hamburger logic
+        const mobileMenu = document.getElementById('mobileMenu');
+        const ham1 = document.getElementById('ham1');
+        const ham2 = document.getElementById('ham2');
+        const ham3 = document.getElementById('ham3');
+        let mobileMenuOpen = false;
+
+        function closeMobileMenu() {
+            mobileMenuOpen = false;
+            mobileMenu.style.maxHeight = '0';
+            ham1.style.transform = '';
+            ham2.style.opacity = '1';
+            ham3.style.transform = '';
+        }
+
+        document.getElementById('mobileMenuTrigger').onclick = (e) => {
+            e.stopPropagation();
+            mobileMenuOpen = !mobileMenuOpen;
+            mobileMenu.style.maxHeight = mobileMenuOpen ? mobileMenu.scrollHeight + 'px' : '0';
+            ham1.style.transform = mobileMenuOpen ? 'translateY(8px) rotate(45deg)' : '';
+            ham2.style.opacity  = mobileMenuOpen ? '0' : '1';
+            ham3.style.transform = mobileMenuOpen ? 'translateY(-8px) rotate(-45deg)' : '';
+        };
+
+        // Profile logic
+        document.getElementById('profileTrigger').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('profileDropdown').classList.toggle('show');
+        };
+
+        window.onclick = (e) => {
+            document.getElementById('profileDropdown').classList.remove('show');
+            if (!document.getElementById('mobileMenuTrigger').contains(e.target) && !mobileMenu.contains(e.target)) {
+                closeMobileMenu();
+            }
+        };
+
+        function clearDateFilter() {
+            dateFilter.value = '';
+            clearDateBtn.classList.remove('visible');
+            applyFilters();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-reports').className = tab === 'reports'
+                ? 'whitespace-nowrap px-4 md:px-8 py-4 text-xs md:text-sm font-bold border-b-2 tab-active'
+                : 'whitespace-nowrap px-4 md:px-8 py-4 text-xs md:text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all';
+            document.getElementById('tab-designs').className = tab === 'designs'
+                ? 'whitespace-nowrap px-4 md:px-8 py-4 text-xs md:text-sm font-bold border-b-2 tab-active'
+                : 'whitespace-nowrap px-4 md:px-8 py-4 text-xs md:text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all';
+
+            if (document.getElementById('btn-upload-report'))
+                document.getElementById('btn-upload-report').style.display = tab === 'reports' ? 'inline-flex' : 'none';
+            if (document.getElementById('btn-upload-design'))
+                document.getElementById('btn-upload-design').style.display = tab === 'designs' ? 'inline-flex' : 'none';
+
+            dateFilterWrapper.style.display = tab === 'reports' ? 'flex' : 'none';
+            viewTitle.innerText = tab === 'reports' ? 'Performance History' : 'Design Specifications';
+            viewDescription.innerText = tab === 'reports'
+                ? 'Manage and view comparisons for your engineering certificates.'
+                : 'Access and manage standard design parameters for pump comparison.';
+
+            mainTable.id = tab === 'reports' ? 'reportsTable' : 'designsTable';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const query = searchInput.value.toLowerCase();
+            const dateVal = dateFilter.value;
+            const data = currentTab === 'reports' ? reportsData : designsData;
+            clearDateBtn.classList.toggle('visible', !!dateVal);
+
+            const filtered = data.filter(item => {
+                const model = (item.pumpModel || item.trueData?.pumpDetails?.model || '').toLowerCase();
+                const sn    = (item.serialNo   || item.trueData?.pumpDetails?.serialNo || '').toLowerCase();
+                const textMatch = model.includes(query) || sn.includes(query);
+
+                let dateMatch = true;
+                if (currentTab === 'reports' && dateVal) {
+                    const uploadDate = item.uploadDate ? new Date(item.uploadDate) : null;
+                    if (uploadDate) {
+                        const y = uploadDate.getFullYear();
+                        const m = String(uploadDate.getMonth() + 1).padStart(2, '0');
+                        const d = String(uploadDate.getDate()).padStart(2, '0');
+                        dateMatch = `${y}-${m}-${d}` === dateVal;
+                    } else { dateMatch = false; }
+                }
+                return textMatch && dateMatch;
+            });
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            tableBody.innerHTML = '';
+            resultCount.innerText = `${data.length} ${currentTab === 'reports' ? 'reports' : 'designs'}`;
+
+            if (currentTab === 'reports') {
+                tableHead.innerHTML = `
+                    <tr>
+                        <th class="py-4 pl-6 pr-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Pump Model</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Serial No.</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Impeller</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Date</th>
+                        <th class="relative py-4 pr-6 text-right text-xs font-black text-slate-500 uppercase tracking-widest border-b">Actions</th>
+                    </tr>`;
+
+                data.forEach((r) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-blue-50/50 cursor-pointer group';
+                    row.onclick = () => window.location.href = `/report/${r._id}`;
+
+                    const model    = r.trueData?.pumpDetails?.model || '-';
+                    const serial   = r.trueData?.pumpDetails?.serialNo || '-';
+                    const impeller = r.trueData?.pumpDetails?.impellerDiameterMm ? `${r.trueData.pumpDetails.impellerDiameterMm} mm` : '-';
+                    const date     = r.uploadDate ? new Date(r.uploadDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '-';
+
+                    row.innerHTML = `
+                        <td data-label="Pump Model" class="py-4 md:pl-6 pr-3 text-sm font-bold text-slate-900 truncate">${model}</td>
+                        <td data-label="Serial No." class="px-3 py-4 text-sm font-mono text-slate-500 truncate">${serial}</td>
+                        <td data-label="Impeller" class="px-3 py-4 text-sm text-slate-600">${impeller}</td>
+                        <td data-label="Upload Date" class="px-3 py-4 text-sm text-slate-400">${date}</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-3">
+                                <span class="hidden md:inline text-[10px] font-black uppercase text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">View</span>
+                                <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                                    <button onclick="handleDeleteReport('${r._id}', event)" class="text-slate-300 hover:text-red-600 p-2 transition-colors">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                <% } %>
+                                <i class="fa-solid fa-chevron-right md:hidden text-slate-300 ml-2"></i>
+                            </div>
+                        </td>`;
+                    tableBody.appendChild(row);
+                });
+
+            } else {
+                tableHead.innerHTML = `
+                    <tr>
+                        <th class="py-4 pl-6 pr-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Model</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Serial No.</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Flow</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Power</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Eff.</th>
+                        <th class="relative py-4 pr-6 text-right text-xs font-black text-slate-500 uppercase tracking-widest border-b">Actions</th>
+                    </tr>`;
+
+                data.forEach((d) => {
+                    const row = document.createElement('tr');
+                    const canEdit = ['MASTER', 'DESIGN TEAM', 'REPORT TEAM'].includes(userRole);
+                    row.className = `group ${canEdit ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default'}`;
+                    if (canEdit) row.onclick = () => window.location.href = `/edit-design/${d._id}`;
+
+                    row.innerHTML = `
+                        <td data-label="Pump Model" class="py-4 md:pl-6 pr-3 text-sm font-bold text-slate-900 truncate">${d.pumpModel}</td>
+                        <td data-label="Serial No." class="px-3 py-4 text-sm font-mono text-slate-500 truncate">${d.serialNo}</td>
+                        <td data-label="Discharge" class="px-3 py-4 text-sm text-slate-600">${d.discharge} m³/h</td>
+                        <td data-label="Power" class="px-3 py-4 text-sm text-slate-600">${d.power} Kw</td>
+                        <td data-label="Efficiency" class="px-3 py-4 text-sm">
+                            <span class="px-2 py-1 rounded bg-green-50 text-green-700 font-bold text-[10px] md:text-xs">${d.efficiency}%</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-3">
+                                ${canEdit ? `<span class="hidden md:inline text-[10px] font-black uppercase text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>` : ''}
+                                <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                                    <button onclick="handleDeleteDesign('${d._id}', event)" class="text-slate-300 hover:text-red-600 p-2 transition-colors">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                <% } %>
+                                <i class="fa-solid fa-chevron-right md:hidden text-slate-300 ml-2"></i>
+                            </div>
+                        </td>`;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="py-20 text-center text-slate-300 font-bold">No records found.</td></tr>`;
+            }
+        }
+
+        async function handleDeleteReport(id, e) {
+            e.stopPropagation();
+            if (!confirm('Permanently delete this report?')) return;
+            try {
+                const res = await fetch(`/delete-report/${id}`, { method: 'POST' });
+                const json = await res.json();
+                json.success ? window.location.reload() : alert('Delete failed');
+            } catch { alert('Error occurred'); }
+        }
+
+        async function handleDeleteDesign(id, e) {
+            e.stopPropagation();
+            if (!confirm('Permanently delete this design?')) return;
+            try {
+                const res = await fetch(`/delete-design/${id}`, { method: 'POST' });
+                const json = await res.json();
+                json.success ? window.location.reload() : alert('Delete failed');
+            } catch { alert('Error occurred'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyFilters();
+        });
+    </script>
+</body>
+</html>
