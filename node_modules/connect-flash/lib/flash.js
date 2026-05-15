@@ -64,7 +64,7 @@ function _flash(type, msg) {
     if (arguments.length > 2 && format) {
       var args = Array.prototype.slice.call(arguments, 1);
       msg = format.apply(undefined, args);
-    } else if (isArray(msg)) {
+    } else if (Array.isArray(msg)) {
       msg.forEach(function(val){
         (msgs[type] = msgs[type] || []).push(val);
       });

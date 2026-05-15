@@ -5,6 +5,7 @@
   <title>PUMPSENSE | Certificate - <%= report.trueData.pumpDetails.model %></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" type="image/png" href="<%= logoUrl %>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -161,8 +162,11 @@
     .tolerance-section { background: var(--tolerance-bg); border: 1px solid var(--border); margin: 10px 0; overflow-x: auto; border-radius: 4px; }
     .tolerance-header { background: linear-gradient(90deg, var(--primary), var(--primary-light)); color: white; text-align: center; font-weight: 700; padding: 8px; font-size: 11px; letter-spacing: 0.06em; }
     .tolerance-table { width: 100%; border-collapse: collapse; min-width: 420px; }
-    .tolerance-table td { border: 1px solid var(--border); padding: 9px 12px; font-size: 10px; }
+    .tolerance-table td, .tolerance-table th { border: 1px solid var(--border); padding: 9px 12px; font-size: 10px; }
     .tolerance-label { font-weight: 700; color: var(--primary); background: #fdfdff; width: 25%; }
+    .tolerance-col-header { background: var(--light-blue); color: var(--primary); font-weight: 700; text-align: center; font-size: 10px; letter-spacing: 0.03em; }
+    .tolerance-val { text-align: center; font-family: "IBM Plex Mono", monospace; font-weight: 600; color: #1e293b; }
+    .tolerance-na { text-align: center; color: #94a3b8; font-size: 11px; }
 
     .footer-signs { margin-top: 18px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
     .sign-box { border: 1px solid var(--border); padding: 16px; flex: 1; min-width: 180px; text-align: center; border-radius: 4px; background: #fafcff; }
@@ -170,7 +174,7 @@
 
     /* ── Modal ── */
     .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); overflow-y: auto; backdrop-filter: blur(4px); }
-    .modal-content { background: #fff; margin: 2% auto; padding: 20px; width: 95%; max-width: 1100px; border-radius: 12px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+    .modal-content { background: #fff; margin: 2% auto; padding: 20px; width: 95%; max-width: 1150px; border-radius: 12px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
     .modal-close { float: right; cursor: pointer; font-size: 28px; line-height: 1; color: #94a3b8; transition: color 0.15s; padding: 4px 8px; }
     .modal-close:hover { color: var(--primary); }
     .modal-title { color: var(--primary); text-align: center; font-weight: 700; margin-bottom: 20px; font-size: 16px; letter-spacing: 0.05em; }
@@ -266,7 +270,7 @@
         width: 100%;
         page-break-before: always;
       }
-      #print-graphs-area .chart-box { height: 460px; width: 100%; margin-bottom: 0; }
+      #print-graphs-area .chart-box { height: 480px; width: 100%; margin-bottom: 0; }
       .chart-box { page-break-inside: avoid; }
       table.data-table { min-width: 100%; }
       .grid-container { grid-template-columns: repeat(4, 1fr) !important; }
@@ -292,7 +296,6 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <img src="<%= logoUrl %>" alt="Pumpsense Logo" class="h-11 w-auto object-contain block">
-       
         <div class="border-l border-gray-200 pl-3">
           <h1 class="text-lg font-bold tracking-tight text-slate-900 uppercase leading-none">Pumpsense</h1>
           <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Fluid Engineering</p>
@@ -577,22 +580,44 @@
           </div>
         </div>
 
-        <!-- Tolerances -->
+        <!-- TOLERANCE REPORT -->
         <div class="tolerance-section">
           <div class="tolerance-header">TOLERANCE REPORT (ISO 9906)</div>
           <table class="tolerance-table">
-            <tr>
-              <td class="tolerance-label">Flow Tolerance:</td>
-              <td id="field-flowTolerance"><%= Number(report.trueData.tolerances.flowTolerance || 0).toFixed(2) %> %</td>
-              <td class="tolerance-label">Head Tolerance:</td>
-              <td id="field-headTolerance"><%= Number(report.trueData.tolerances.headTolerance || 0).toFixed(2) %> %</td>
-            </tr>
-            <tr>
-              <td class="tolerance-label">Efficiency Tolerance:</td>
-              <td id="field-efficiencyTolerance"><%= Number(report.trueData.tolerances.efficiencyTolerance || 0).toFixed(2) %> %</td>
-              <td class="tolerance-label">Power Tolerance:</td>
-              <td id="field-powerTolerance"><%= Number(report.trueData.tolerances.powerTolerance || 0).toFixed(2) %> %</td>
-            </tr>
+            <thead>
+              <tr>
+                <th class="tolerance-label" style="background:#fdfdff;"></th>
+                <th class="tolerance-col-header">Lower</th>
+                <th class="tolerance-col-header">Middle</th>
+                <th class="tolerance-col-header">Upper</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="tolerance-label">Flow Tolerance:</td>
+                <td class="tolerance-val" id="field-flow-lower"><%= Number(report.trueData.tolerances.flow.lower || 0).toFixed(2) %></td>
+                <td class="tolerance-val" id="field-flow-middle"><%= Number(report.trueData.tolerances.flow.middle || 0).toFixed(2) %></td>
+                <td class="tolerance-val" id="field-flow-upper"><%= Number(report.trueData.tolerances.flow.upper || 0).toFixed(2) %></td>
+              </tr>
+              <tr>
+                <td class="tolerance-label">Head Tolerance:</td>
+                <td class="tolerance-val" id="field-head-lower"><%= Number(report.trueData.tolerances.head.lower || 0).toFixed(2) %></td>
+                <td class="tolerance-val" id="field-head-middle"><%= Number(report.trueData.tolerances.head.middle || 0).toFixed(2) %></td>
+                <td class="tolerance-val" id="field-head-upper"><%= Number(report.trueData.tolerances.head.upper || 0).toFixed(2) %></td>
+              </tr>
+              <tr>
+                <td class="tolerance-label">Efficiency Tolerance:</td>
+                <td class="tolerance-val" id="field-efficiency-lower"><%= Number(report.trueData.tolerances.efficiency.lower || 0).toFixed(2) %></td>
+                <td class="tolerance-na">—</td>
+                <td class="tolerance-val" id="field-efficiency-upper"><%= Number(report.trueData.tolerances.efficiency.upper || 0).toFixed(2) %></td>
+              </tr>
+              <tr>
+                <td class="tolerance-label">Power Tolerance:</td>
+                <td class="tolerance-val" id="field-power-lower"><%= Number(report.trueData.tolerances.power.lower || 0).toFixed(2) %></td>
+                <td class="tolerance-na">—</td>
+                <td class="tolerance-val" id="field-power-upper"><%= Number(report.trueData.tolerances.power.upper || 0).toFixed(2) %></td>
+              </tr>
+            </tbody>
           </table>
         </div>
 
@@ -617,7 +642,7 @@
       <div id="print-graphs-area">
         <h2 style="color:var(--primary); text-align:center; margin-top:30px; font-weight:700; letter-spacing:0.05em; font-size:14px; text-transform:uppercase;">Pump Performance Curves</h2>
         <p style="text-align:center; font-size:10px; color:#64748b; margin-bottom:12px;">H-Q &nbsp;|&nbsp; η-Q &nbsp;|&nbsp; P-Q &nbsp; Composite Characteristic</p>
-        <div class="chart-box" style="height: 460px;">
+        <div class="chart-box" style="height: 520px;">
           <canvas id="compositeChartPrint" role="img" aria-label="Composite pump performance curves showing Head, Efficiency and Power vs Flow"></canvas>
         </div>
       </div>
@@ -647,18 +672,22 @@
           <span class="legend-line" style="background:transparent; border-top: 3px dashed #1b5e20; height:0; margin-top:1px; width:28px;"></span>
           <span>Shaft Power (kW)</span>
         </div>
+        <div class="chart-legend-item">
+          <span class="legend-line" style="background:#94a3b8; border-top: 1.5px solid #94a3b8; height:0; margin-top:1px; width:20px;"></span>
+          <span>Reference Tensions</span>
+        </div>
         <div class="chart-legend-item" id="legend-design" style="display:none;">
           <span class="legend-diamond"></span>
           <span>Design Condition</span>
         </div>
       </div>
 
-      <div class="chart-box" style="height: 460px;">
+      <div class="chart-box" style="height: 540px;">
         <canvas id="compositeChartModal" role="img" aria-label="Composite pump performance curves showing Head, Efficiency and Power vs Flow"></canvas>
       </div>
 
       <!-- Axis labels note -->
-      <div style="display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; margin-top:8px; padding:0 4px;">
+      <div style="display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; margin-top:12px; padding:0 4px;">
         <span style="color:#003366; font-weight:600;">← Left axis: Head (m) &amp; Power (kW)</span>
         <span style="color:#b71c1c; font-weight:600;">Right axis: Efficiency (%) →</span>
       </div>
@@ -743,10 +772,18 @@
       const ratedHeader = document.querySelector('.side-header');
       if (ratedHeader) ratedHeader.innerText = `AT RATED SPEED: ${data.testSummary.guaranteedSpeedRpm || '-'} RPM`;
 
-      document.getElementById('field-flowTolerance').innerText       = fmt(data.tolerances.flowTolerance, 2) + ' %';
-      document.getElementById('field-headTolerance').innerText       = fmt(data.tolerances.headTolerance, 2) + ' %';
-      document.getElementById('field-efficiencyTolerance').innerText = fmt(data.tolerances.efficiencyTolerance, 2) + ' %';
-      document.getElementById('field-powerTolerance').innerText      = fmt(data.tolerances.powerTolerance, 2) + ' %';
+      const tol = data.tolerances || {};
+      document.getElementById('field-flow-lower').innerText       = fmt((tol.flow       || {}).lower,      2);
+      document.getElementById('field-flow-middle').innerText      = fmt((tol.flow       || {}).middle,     2);
+      document.getElementById('field-flow-upper').innerText       = fmt((tol.flow       || {}).upper,      2);
+      document.getElementById('field-head-lower').innerText       = fmt((tol.head       || {}).lower,      2);
+      document.getElementById('field-head-middle').innerText      = fmt((tol.head       || {}).middle,     2);
+      document.getElementById('field-head-upper').innerText       = fmt((tol.head       || {}).upper,      2);
+      document.getElementById('field-efficiency-lower').innerText = fmt((tol.efficiency || {}).lower,      2);
+      document.getElementById('field-efficiency-upper').innerText = fmt((tol.efficiency || {}).upper,      2);
+      document.getElementById('field-power-lower').innerText      = fmt((tol.power      || {}).lower,      2);
+      document.getElementById('field-power-upper').innerText      = fmt((tol.power      || {}).upper,      2);
+
       document.getElementById('field-customerAgency').innerText      = data.representatives.customerAgency || 'Customer / Agency';
       document.getElementById('field-manufacturer').innerText        = data.representatives.manufacturer || 'Manufacturer';
       document.getElementById('field-mech-pumpSerialNo').innerText   = data.mechanicalTest.pumpSerialNo || data.pumpDetails.serialNo || '-';
@@ -773,7 +810,6 @@
       document.getElementById('field-testEngineerName').innerText    = data.mechanicalTest.testEngineerName || '-';
       document.getElementById('field-sign-engineer').innerText       = data.mechanicalTest.testEngineerName || '-';
 
-      // Observations table
       const obsTbody = document.getElementById('obs-table-body');
       obsTbody.innerHTML = data.observations.length === 0
         ? `<tr><td colspan="13" style="text-align:center; color:#999; padding:16px;">No observations available</td></tr>`
@@ -794,7 +830,6 @@
             <td><strong style="color:var(--primary);">${fmt(obs.pumpEfficiencyPercent,1)}</strong></td>
           </tr>`).join('');
 
-      // Rated speed table
       const ratedTbody = document.getElementById('rated-table-body');
       const sorted = [...data.ratedSpeedData].sort((a,b) => a.flowM3Hr - b.flowM3Hr);
       ratedTbody.innerHTML = sorted.map(p => `
@@ -810,7 +845,6 @@
       initCompositeChart('print');
     }
 
-    // ─── Design match check ────────────────────────────────────────────────────
     function isDesignMatch() {
       if (!designInfo) return false;
       const rModel  = (reportData.trueData.pumpDetails.model   || "").trim().toLowerCase();
@@ -820,7 +854,7 @@
       return rModel === dModel && rSerial === dSerial;
     }
 
-    // ─── Composite chart config builder ───────────────────────────────────────
+    // ─── Composite chart config builder (Detailed Grid + Horizontal Flow Tolerance + Tiny Dots) ──
     function buildCompositeConfig(isPrint) {
       const rawData = reportData[currentDataSet].ratedSpeedData;
       const data    = [...rawData].sort((a, b) => a.flowM3Hr - b.flowM3Hr);
@@ -830,78 +864,146 @@
       const effs   = data.map(d => d.pumpEfficiencyPercent);
       const powers = data.map(d => d.powerKW);
 
-      const maxLeft = Math.ceil(Math.max(...heads, ...powers) * 1.18 / 10) * 10;
+      const maxLeft = Math.ceil(Math.max(...heads, ...powers) * 1.15 / 10) * 10;
+      const maxFlow = Math.max(...flows);
+
+      // ── Tolerance values from report ──────────────────────────────────────
+      const tol        = reportData[currentDataSet].tolerances || {};
+      const flowLow    = (tol.flow        || {}).lower  || 0;
+      const flowMid    = (tol.flow        || {}).middle || 0;
+      const flowHigh   = (tol.flow        || {}).upper  || 0;
+      const headLower  = (tol.head        || {}).lower  || 0;
+      const headMid    = (tol.head        || {}).middle || 0;
+      const headUpper  = (tol.head        || {}).upper  || 0;
+      const effLower   = (tol.efficiency || {}).lower  || 0;
+      const effUpper   = (tol.efficiency || {}).upper  || 0;
+      const powLower   = (tol.power      || {}).lower  || 0;
+      const powUpper   = (tol.power      || {}).upper  || 0;
+
+      const tickFontSize  = isPrint ? 9  : 11;
+      const labelFontSize = isPrint ? 10 : 12;
+
+      // Small points for visibility as requested
+      const tolPtSize = isPrint ? 1.5 : 2;
 
       const datasets = [
+        // ── Main curves ─────────────────────────────────────────────────────
         {
           label: 'H-Q  –  Total Dynamic Head (m)',
           data: flows.map((f, i) => ({ x: f, y: heads[i] })),
           yAxisID: 'yLeft',
-          borderColor: '#003366',
-          backgroundColor: 'rgba(0,51,102,0.07)',
-          tension: 0.38,
-          fill: false,
-          pointRadius: isPrint ? 3 : 4,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#003366',
-          borderWidth: 2.5,
-          borderDash: [],
-          order: 1
+          borderColor: '#003366', backgroundColor: 'rgba(0,51,102,0.07)',
+          tension: 0.38, fill: false,
+          pointRadius: isPrint ? 3 : 4, pointHoverRadius: 7, pointBackgroundColor: '#003366',
+          borderWidth: 2.5, borderDash: [], order: 1
         },
         {
           label: 'η-Q  –  Pump Efficiency (%)',
           data: flows.map((f, i) => ({ x: f, y: effs[i] })),
           yAxisID: 'yRight',
-          borderColor: '#b71c1c',
-          backgroundColor: 'rgba(183,28,28,0.05)',
-          tension: 0.38,
-          fill: false,
-          pointRadius: isPrint ? 3 : 4,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#b71c1c',
-          borderWidth: 2.5,
-          borderDash: [8, 4],
-          order: 2
+          borderColor: '#b71c1c', backgroundColor: 'rgba(183,28,28,0.05)',
+          tension: 0.38, fill: false,
+          pointRadius: isPrint ? 3 : 4, pointHoverRadius: 7, pointBackgroundColor: '#b71c1c',
+          borderWidth: 2.5, borderDash: [8, 4], order: 2
         },
         {
           label: 'P-Q  –  Shaft Power (kW)',
           data: flows.map((f, i) => ({ x: f, y: powers[i] })),
           yAxisID: 'yLeft',
-          borderColor: '#1b5e20',
-          backgroundColor: 'rgba(27,94,32,0.05)',
-          tension: 0.38,
-          fill: false,
-          pointRadius: isPrint ? 3 : 4,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#1b5e20',
-          borderWidth: 2,
-          borderDash: [5, 5],
-          order: 3
-        }
+          borderColor: '#1b5e20', backgroundColor: 'rgba(27,94,32,0.05)',
+          tension: 0.38, fill: false,
+          pointRadius: isPrint ? 3 : 4, pointHoverRadius: 7, pointBackgroundColor: '#1b5e20',
+          borderWidth: 2, borderDash: [5, 5], order: 3
+        },
+
+        // ── Reference Flow Line (Vertical Dashed) ───────────────────────────
+        {
+          label: '_flowRefLine',
+          data: [{ x: flowMid, y: 0 }, { x: flowMid, y: maxLeft }],
+          yAxisID: 'yLeft',
+          borderColor: 'rgba(160,160,160,0.55)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.2,
+          borderDash: [5, 4],
+          pointRadius: 0, pointHoverRadius: 0,
+          tension: 0, fill: false,
+          showLine: true, order: 10
+        },
+
+        // ── Tolerance Segments (With Small Points for Detail Visibility) ─────
+        // 1. Flow Tolerance: Horizontal line at headMid (parallel to x-axis)
+        ...(flowLow && flowHigh && headMid ? [
+          {
+            label: 'Flow Tolerance',
+            data: [{ x: flowLow, y: headMid }, { x: flowHigh, y: headMid }],
+            yAxisID: 'yLeft',
+            borderColor: '#005b96', backgroundColor: '#005b96',
+            borderWidth: 2.5,
+            pointRadius: tolPtSize, pointHoverRadius: 4,
+            showLine: true, order: 9
+          }
+        ] : []),
+
+        // 2. Head Tolerance: Vertical line at flowMid
+        ...(flowMid && headLower && headUpper ? [
+          {
+            label: 'Head Tolerance',
+            data: [{ x: flowMid, y: headLower }, { x: flowMid, y: headUpper }],
+            yAxisID: 'yLeft',
+            borderColor: '#003366', backgroundColor: '#003366',
+            borderWidth: 2.5,
+            pointRadius: tolPtSize, pointHoverRadius: 4,
+            showLine: true, order: 9
+          },
+          {
+            label: '_headCenter',
+            data: [{ x: flowMid, y: headMid }],
+            yAxisID: 'yLeft',
+            borderColor: '#003366', backgroundColor: '#003366',
+            pointRadius: isPrint ? 3 : 4, pointHoverRadius: 5,
+            showLine: false, order: 8
+          }
+        ] : []),
+
+        // 3. Efficiency Tolerance: Vertical line at flowMid
+        ...(flowMid && effLower && effUpper ? [
+          {
+            label: 'Efficiency Tolerance',
+            data: [{ x: flowMid, y: effLower }, { x: flowMid, y: effUpper }],
+            yAxisID: 'yRight',
+            borderColor: '#b71c1c', backgroundColor: '#b71c1c',
+            borderWidth: 2.5,
+            pointRadius: tolPtSize, pointHoverRadius: 4,
+            showLine: true, order: 9
+          }
+        ] : []),
+
+        // 4. Power Tolerance: Vertical line at flowMid
+        ...(flowMid && powLower && powUpper ? [
+          {
+            label: 'Power Tolerance',
+            data: [{ x: flowMid, y: powLower }, { x: flowMid, y: powUpper }],
+            yAxisID: 'yLeft',
+            borderColor: '#1b5e20', backgroundColor: '#1b5e20',
+            borderWidth: 2.5,
+            pointRadius: tolPtSize, pointHoverRadius: 4,
+            showLine: true, order: 9
+          }
+        ] : [])
       ];
 
-      // Design condition point
       if (isDesignMatch() && designInfo.discharge) {
         datasets.push({
           label: 'Design Condition',
           data: [{ x: designInfo.discharge, y: designInfo.totalHead }],
           yAxisID: 'yLeft',
-          backgroundColor: '#f59e0b',
-          borderColor: '#92400e',
-          pointRadius: isPrint ? 8 : 11,
-          pointHoverRadius: 13,
-          pointStyle: 'rectRot',
-          showLine: false,
-          borderWidth: 2.5,
-          order: 0
+          backgroundColor: '#f59e0b', borderColor: '#92400e',
+          pointRadius: isPrint ? 6 : 8, pointHoverRadius: 10,
+          pointStyle: 'rectRot', showLine: false, borderWidth: 2, order: 0
         });
         const el = document.getElementById('legend-design');
         if (el) el.style.display = 'flex';
       }
-
-      const maxFlow = Math.max(...flows);
-      const tickFontSize = isPrint ? 9 : 11;
-      const labelFontSize = isPrint ? 10 : 12;
 
       return {
         type: 'line',
@@ -916,43 +1018,58 @@
               display: !isPrint,
               position: 'top',
               labels: {
-                boxWidth: 30,
-                boxHeight: 3,
-                padding: 18,
+                boxWidth: 30, boxHeight: 3, padding: 18,
                 font: { size: 11, family: "'IBM Plex Sans', sans-serif", weight: '600' },
                 usePointStyle: false,
-                generateLabels: (chart) => chart.data.datasets.map((ds, i) => ({
-                  text: ds.label,
-                  fillStyle: 'transparent',
-                  strokeStyle: ds.borderColor,
-                  lineWidth: 2.5,
-                  hidden: !chart.isDatasetVisible(i),
-                  datasetIndex: i,
-                  lineDash: ds.borderDash || []
-                }))
+                filter: (item) => !item.text.startsWith('_'),
+                generateLabels: (chart) => chart.data.datasets
+                  .filter(ds => !ds.label.startsWith('_'))
+                  .map((ds) => {
+                    const realIdx = chart.data.datasets.indexOf(ds);
+                    const isTol = ds.label.includes('Tolerance');
+                    return {
+                      text: ds.label,
+                      fillStyle: isTol ? ds.borderColor : 'transparent',
+                      strokeStyle: ds.borderColor,
+                      lineWidth: isTol ? 1.5 : 2.5,
+                      hidden: !chart.isDatasetVisible(realIdx),
+                      datasetIndex: realIdx,
+                      lineDash: ds.borderDash || []
+                    };
+                  })
               }
             },
             tooltip: {
-              backgroundColor: 'rgba(0,26,64,0.95)',
-              titleColor: '#93c5fd',
-              bodyColor: '#e2e8f0',
+              enabled: true,
+              backgroundColor: 'rgba(0,26,64,0.98)',
+              titleColor: '#93c5fd', bodyColor: '#e2e8f0',
               titleFont: { size: 11, weight: 'bold', family: "'IBM Plex Mono', monospace" },
               bodyFont: { size: 10, family: "'IBM Plex Sans', sans-serif" },
-              padding: 12,
-              cornerRadius: 6,
-              borderColor: 'rgba(255,255,255,0.1)',
-              borderWidth: 1,
+              padding: 12, cornerRadius: 6,
+              borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+              filter: (item) => !item.dataset.label.startsWith('_'),
               callbacks: {
                 title: (items) => `Flow: ${Number(items[0].parsed.x).toFixed(1)} m³/hr`,
                 label: (item) => {
-                  const ds    = item.dataset;
+                  const ds = item.dataset;
+                  if (ds.label.includes('Tolerance')) {
+                    if (ds.label === 'Flow Tolerance') {
+                      const low = Math.min(ds.data[0].x, ds.data[1].x);
+                      const high = Math.max(ds.data[0].x, ds.data[1].x);
+                      return `${ds.label}: ${low.toFixed(2)} to ${high.toFixed(2)} m³/hr`;
+                    } else {
+                      const low = Math.min(ds.data[0].y, ds.data[1].y);
+                      const high = Math.max(ds.data[0].y, ds.data[1].y);
+                      const unit = ds.yAxisID === 'yRight' ? '%' : (ds.label.includes('Power') ? 'kW' : 'm');
+                      return `${ds.label}: ${low.toFixed(2)} to ${high.toFixed(2)} ${unit}`;
+                    }
+                  }
                   const isEff = ds.yAxisID === 'yRight';
                   const isPow = ds.label.includes('Power');
                   const unit  = isEff ? ' %' : (isPow ? ' kW' : ' m');
                   const sym   = isEff ? 'η' : (isPow ? 'P' : 'H');
                   return `  ${sym} = ${Number(item.parsed.y).toFixed(1)}${unit}`;
-                },
-                afterBody: () => '',
+                }
               }
             }
           },
@@ -965,58 +1082,48 @@
                 display: true,
                 text: 'Flow Rate  Q  (m³/hr)',
                 font: { size: labelFontSize, weight: 'bold', family: "'IBM Plex Sans', sans-serif" },
-                color: '#1e293b',
-                padding: { top: 8 }
+                color: '#1e293b', padding: { top: 8 }
               },
-              grid: {
-                color: 'rgba(100,116,139,0.12)',
-                lineWidth: 1
-              },
+              grid: { color: 'rgba(100,116,139,0.18)', lineWidth: 0.7 },
               ticks: {
                 font: { size: tickFontSize, family: "'IBM Plex Mono', monospace" },
                 color: '#475569',
-                maxTicksLimit: 12
+                stepSize: 1, // High detail: increment by 1 unit
+                maxTicksLimit: 60
               }
             },
             yLeft: {
-              type: 'linear',
-              position: 'left',
-              min: 0,
-              max: maxLeft,
+              type: 'linear', position: 'left',
+              min: 0, max: maxLeft,
               title: {
                 display: true,
                 text: 'Head  H  (m)   /   Power  P  (kW)',
                 font: { size: labelFontSize, weight: 'bold', family: "'IBM Plex Sans', sans-serif" },
-                color: '#003366',
-                padding: { bottom: 8 }
+                color: '#003366', padding: { bottom: 8 }
               },
-              grid: {
-                color: 'rgba(0,51,102,0.09)',
-                lineWidth: 1
-              },
-              ticks: {
-                font: { size: tickFontSize, family: "'IBM Plex Mono', monospace" },
-                color: '#003366',
-                maxTicksLimit: 10
+              grid: { color: 'rgba(0,51,102,0.12)', lineWidth: 0.7 },
+              ticks: { 
+                font: { size: tickFontSize, family: "'IBM Plex Mono', monospace" }, 
+                color: '#003366', 
+                stepSize: 1, // High detail: increment by 1 unit
+                maxTicksLimit: 60
               }
             },
             yRight: {
-              type: 'linear',
-              position: 'right',
-              min: 0,
-              max: 100,
+              type: 'linear', position: 'right',
+              min: 0, max: 100,
               title: {
                 display: true,
                 text: 'Efficiency  η  (%)',
                 font: { size: labelFontSize, weight: 'bold', family: "'IBM Plex Sans', sans-serif" },
-                color: '#b71c1c',
-                padding: { bottom: 8 }
+                color: '#b71c1c', padding: { bottom: 8 }
               },
               grid: { drawOnChartArea: false },
               ticks: {
                 font: { size: tickFontSize, family: "'IBM Plex Mono', monospace" },
-                color: '#b71c1c',
-                maxTicksLimit: 10,
+                color: '#b71c1c', 
+                stepSize: 2, // High detail for efficiency (2% steps)
+                maxTicksLimit: 50,
                 callback: (v) => v + '%'
               }
             }
@@ -1025,7 +1132,6 @@
       };
     }
 
-    // ─── Init / destroy chart ──────────────────────────────────────────────────
     function initCompositeChart(target) {
       const isPrint  = (target === 'print');
       const canvasId = isPrint ? 'compositeChartPrint' : 'compositeChartModal';
@@ -1039,7 +1145,6 @@
       if (isPrint) charts.print = chart; else charts.modal = chart;
     }
 
-    // ─── Modal open/close ──────────────────────────────────────────────────────
     function openGraphModal() {
       document.getElementById('graphModal').style.display = 'block';
       setTimeout(() => initCompositeChart('modal'), 120);
@@ -1048,7 +1153,6 @@
       document.getElementById('graphModal').style.display = 'none';
     }
 
-    // ─── Print ────────────────────────────────────────────────────────────────
     function prepareAndPrint() {
       if (charts.print) { charts.print.destroy(); charts.print = null; }
 
@@ -1057,11 +1161,11 @@
       pg.style.position = 'fixed';
       pg.style.top      = '-9999px';
       pg.style.left     = '0';
-      pg.style.width    = '900px';
+      pg.style.width    = '980px';
       pg.style.zIndex   = '-1';
 
       const c = document.getElementById('compositeChartPrint');
-      if (c) { c.width = 860; c.height = 460; }
+      if (c) { c.width = 940; c.height = 540; }
 
       initCompositeChart('print');
 
@@ -1080,8 +1184,6 @@
       pg.style.display  = 'none';
       pg.style.position = '';
     });
-
-    window.onload = () => {};
   </script>
 </body>
 </html>

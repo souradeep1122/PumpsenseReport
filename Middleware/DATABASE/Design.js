@@ -8,29 +8,19 @@ mongoose.connect(process.env.MONGO_LINK)
     
     try {
       const collection = mongoose.connection.db.collection('designs');
-      
-      // 1. Fetch all current indexes to see what we are working with
       const indexes = await collection.indexes();
-      console.log("Current Database Indexes:", indexes.map(i => i.name));
 
-      // 2. Aggressively target and drop the problematic old index
+      // Silently drop the problematic old index if it exists
+      // Removed the 'else' console log to stop the terminal noise
       if (indexes.find(i => i.name === 'serialNo_1')) {
         await collection.dropIndex('serialNo_1');
-        console.log("SUCCESS: Old index 'serialNo_1' has been physically deleted.");
-      } else {
-        console.log("Check: 'serialNo_1' not found. It may have been dropped or named differently.");
-      }
-
-      // 3. Optional: If you still get errors, this drops any index that isn't the primary ID or the new compound one
-      for (let idx of indexes) {
-        if (idx.name !== '_id_' && idx.name !== 'pumpModel_1_serialNo_1') {
-           // If there are other rogue unique indexes, we can clear them here if needed
-           // await collection.dropIndex(idx.name);
-        }
       }
 
     } catch (err) {
-      console.error("Cleanup Execution Error:", err.message);
+      // Only log actual execution errors, not missing indexes
+      if (err.codeName !== 'IndexNotFound') {
+        console.error("Database Cleanup Error:", err.message);
+      }
     }
   })
   .catch((error) => console.log("Connection Error:", error));
@@ -46,7 +36,6 @@ const pumpSchema = new mongoose.Schema({
   serialNo: {
     type: String,
     required: [true, 'Serial Number is required'],
-    // Ensure this remains just a string without 'unique: true'
     trim: true
   },
 
@@ -82,8 +71,7 @@ const pumpSchema = new mongoose.Schema({
 
 /**
  * COMPOUND UNIQUE INDEX
- * This is the ONLY index that should be active for uniqueness.
- * It allows the same serialNo to exist for DIFFERENT pumpModels.
+ * Allows the same serialNo to exist for DIFFERENT pumpModels.
  */
 pumpSchema.index({ pumpModel: 1, serialNo: 1 }, { unique: true });
 

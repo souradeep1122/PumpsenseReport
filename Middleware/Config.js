@@ -17,7 +17,7 @@ const flash = require('connect-flash');
 const PumpTestComparison = require("./DATABASE/Report"); 
 const User = require("./DATABASE/Credential"); 
 const Design = require("./DATABASE/Design"); 
-const { parseExcelData } = require("./ExcelParser");
+const { parseExcelData } = require("./Excelparser");
 
 /**
  * 1. MULTER CONFIGURATION

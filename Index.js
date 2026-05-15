@@ -314,7 +314,7 @@ app.get("/edit-design/:id", authorize([ROLES.MASTER, ROLES.DESIGN_TEAM, ROLES.RE
     try {
         const design = await Design.findById(req.params.id);
         if (!design) return res.status(404).send("Design not found");
-        res.render("Design", { user: req.user, design, message: req.flash('error') });
+        res.render("Design2", { user: req.user, design, message: req.flash('error') });
     } catch (error) { res.status(500).send("Error loading design."); }
 });
 

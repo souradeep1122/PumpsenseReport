@@ -1,13 +1,4 @@
-require("dotenv").config();
-
-
 const mongoose = require('mongoose');
-mongoose.connect(process.env.MONGO_LINK)
-.then(() => console.log("Mongodb Connected"))
-.catch((error) => console.log(error));;
-
-
-mongoose.set("strictQuery", false);
 
 const observationSchema = new mongoose.Schema({
   slNo: Number,
@@ -50,14 +41,10 @@ const leakageSchema = new mongoose.Schema({
   pressureContainment: { type: String, enum: ["YES", "NO"] },
   gasket: { type: String, enum: ["YES", "NO"] },
   mechanicalSealPiping: { type: String, enum: ["YES", "NO"] },
-  packingsOrSeal: { type: String }, // e.g. "YES, UNDER CONTROL"
+  packingsOrSeal: { type: String },
   bearingHousing: { type: String, enum: ["YES", "NO"] }
 }, { _id: false });
 
-// ---------------------------------------------------------
-// Single Pump Test Structure
-// (Used for both True and Altered data blocks)
-// ---------------------------------------------------------
 const PumpTestSchema = new mongoose.Schema({
   company: {
     name: String,
@@ -133,60 +120,64 @@ const PumpTestSchema = new mongoose.Schema({
   },
 
   tolerances: {
-    flowTolerance: Number,
-    headTolerance: Number,
-    efficiencyTolerance: Number,
-    powerTolerance: Number
+    acceptanceGrade: String,
+    flow: {
+      upper: Number,
+      middle: Number,
+      lower: Number
+    },
+    head: {
+      upper: Number,
+      middle: Number,
+      lower: Number
+    },
+    efficiency: {
+      upper: Number,
+      lower: Number
+    },
+    power: {
+      upper: Number,
+      lower: Number
+    },
+    overallToleranceStatus: String
   },
 
   mechanicalTest: {
     pumpSerialNo: String,
     modelName: String,
     pumpType: String,
-    powerRating: String, // Changed to String as "Below 200 kW" is text
-
+    powerRating: String,
     vibration: vibrationSchema,
-
     bearingTemperature: {
       deC: Number,
       ndeC: Number
     },
-
-    noiseLevelDBA: String, // Changed to String to support "83~84"
-
+    noiseLevelDBA: String,
     leakage: leakageSchema,
-
-    freeRunningRotatingParts: { type: String }, // "YES" is string in Excel
-
+    freeRunningRotatingParts: { type: String },
     testEngineerName: String
   }
 
-}, { _id: false }); // No ID for the embedded data block
+// ✅ REMOVED { _id: false } here — PumpTestSchema is embedded, not a root model,
+//    but removing it ensures MongoDB correctly assigns _id when used as subdocument
+});
 
-// ---------------------------------------------------------
-// Main Comparison Schema
-// ---------------------------------------------------------
 const PumpTestComparisonSchema = new mongoose.Schema({
   uploadDate: {
     type: Date,
     default: Date.now
   },
-
-  // Stores the data from the "True" file
   trueData: {
     type: PumpTestSchema
-   
   },
-
-  // Stores the data from the "Altered" file
   alteredData: {
     type: PumpTestSchema
-    
   }
-
-}, { 
+}, {
   timestamps: true,
   collection: 'pump_test_comparisons2'
 });
+
+
 
 module.exports = mongoose.model('PumpTestComparison', PumpTestComparisonSchema);
